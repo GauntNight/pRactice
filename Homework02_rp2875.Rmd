@@ -1,0 +1,181 @@
+---
+title: "Homework 2 Solutions"
+author: "Rob Peterscheck, rp2875"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+  theme: cayman
+highlight: github
+---
+  ```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, comment="", warning = FALSE, message = FALSE, tidy.opts=list(width.cutoff=55), tidy = TRUE)
+```
+
+```{r libraries}
+library(caret)
+library(pdist)
+library(class)
+library(flexclust)
+library(Sleuth2)
+```
+
+```{r source_files}
+
+```
+
+```{r functions}
+
+```
+
+```{r constants}
+
+```
+
+```{r load_data}
+
+```
+
+```{r clean_data}
+
+```
+
+
+**Directions**: please submit your homework as two files — .Rmd and .html — on the Canvas class website. Include short explanations of your code and results throughout.
+
+## Question 1: Bias-Variance Tradeoff (25 points)
+
+1a:  Diagram
+
+The diagram below illustrates the Bias-Variance Tradeoff.  Different components of the diagram are labeled with the letters A through I.  Fill in each of these labels with the name of the term or a short description.
+
+![](Bias Variance Tradeoff Diagram.png)
+
+A: Total Error (Bias/Complexity = Variance/Complexity) So both Bias/Variance contribute to error
+B: Variance
+C: Bias 
+D: Optimum Complexity (Point where Variance/Bias are combined lowest)
+E: Error Level (Mean Squared Error)
+F: Expected test MSE (Average MSE by repeatedly estimating f)
+G: Bias (Lower Bias) an lower Variance is needed
+H: Variance (As Above)
+I: Irreducible error (mathmatical limit of learning)
+
+
+1b. **True or False:** Along the dotted line (D), the value of the curve (A) is equal to the sum of curves (B) and (C).TRUE
+
+1c. **True or False.** The left side of the equation in Figure 1 (i.e., $E\left[(y − \hat{f}(x))^2\right]$ will never be negative. TRUE
+
+1d. **True or False.** In general, we expect $Var(\hat{f}(x))$ in the equation to be smaller when we use more flexible methods. False (In general, more flexible statistical methods have higher variance)
+
+1e. **True or False.** As we move from less flexible to more flexible methods, $[bias(\hat{f}(x))]^2$ will usually not increase. True - More flexible methods result in less Bias.
+
+1f. **True or False.** More data will reduce the bias of an estimator. True - in theory if we had infinite data to calibrate we would be able to reduce both the bias and the variance terms to 0. This is impossible in the real world of course.
+
+1g. **True or False.** More data will reduce the variance of an estimator. True - see above
+
+## Question 2: KMEAN Clustering Problem (25 points)
+We will cluster the *iris* dataset to understand the structure of dataset via the already designed function so-called *kmeans()*. We also will design a program to visually determine the number of clusters. 
+
+2a. After loading the *iris* dataset, retrieve the numerical measures and standardize the iris dataset. Explain how the standard deviation of variables changes. 
+iris.preprocess <- preProcess(iris[,1:4], method = c("scale"))
+print(iris.preprocess)
+#After scaling 4 variables (At least according to this) the standard deviation should have decreased.
+
+2b. Visualize the width and length measurements separately. Did you find any correlations?
+#no - or at least none that is visually obvious on my scatter chart.
+plot(x[c("Sepal.Length", "Sepal.Width")], col=iris.kmeans$cluster)
+
+2c.	Construct the K-means algorithm using *kmeans()* function on the whole dataset with the *k* value of 3.
+x = iris[,-5]
+kmeans(x,3)
+
+2d.	Inspect the output: i)	Calculate the total within-cluster variance. ii)	Visualize the results against the truth. iii).	Plot the cluster centers over the data for both width and length.
+plot(x[c("Sepal.Length", "Sepal.Width")], col=iris.kmeans$cluster) # kmeans cluster visualization.
+
+
+2e.	Program a code to plot the scree plot (via "elbow" method; sum of within-cluster variance vs. *k* value). Determine the plausible number of clusters and explain your reasons.
+wssplot <- function(data, nc=15, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")}
+wssplot(iris.transformed)
+#By using this method I was also able to allow the kmeans algorithm to give me an idea of the number of clusters vs. groups. The nice graph produced indicates that around 6-8 clusters makes the most sense here.
+
+## Question 3: Hierarchy Clustering Problem (25 points)
+The *nutrient* dataset contains the measurements of nutrients in several types of meat, fish, and fowl. We can characterize the nutrients of types of food.  In this practice, we are going to group the food by the common nutrient characteristics than the type of food using the Hierarchy Clustering method, *hclust()* and *cutree()* functions. 
+
+3a.	Load the **fluxclust** library and the *nutrient* dataset.
+library(flexclust)
+data("nutrient")
+
+3b.	Scale the data and calculate the pairwise distances between observations. Explain why we need to scale the data. 
+#IF you do not scale/normalize the data the clusters will cause a variable to dominate observations. Especially with the raw Nutrient data where the numbers are extermly different (calories is measured in the hundreds). In order to calculate distances you need data that can be looked at easily, and that means scaling.
+nutrient.m <- apply(nutrient,2,mean)
+nutrient.s <- apply(nutrient,2,sd)
+nutrient.scale <- scale(nutrient,nutrient.m,nutrient.s)
+dist(nutrient.scale)
+
+3c.	Create various dendrograms using **single**, **complete**, and **average** linkage. 
+nutrient.dist <- dist(nutrient.scale)
+#Complete Linkage
+nutrient.c <- hclust(nutrient.dist)
+nutrient.s <- hclust(nutrient.dist,"single")
+nutrient.a <- hclust(nutrient.dist,"average")
+plot(nutrient.c, cex = .7)
+plot(nutrient.s, cex = .7)
+plot(nutrient.a, cex = .7)
+
+3d.	Cut the dendrogram into groups of 5. 
+member.c <- cutree(nutrient.c,5)
+member.s <- cutree(nutrient.s,5)
+member.a <- cutree(nutrient.a,5)
+
+3e.	Aggregate the original and scaled data by the cluster assignments. Discuss the results. 
+aggregate(nutrient, list(member.c),mean)
+aggregate(nutrient.scale, list(member.c),mean)
+#While the assignments look similar, it seems like with high numbers it is difficult to read the assignment easily.
+
+3f.	Visualize the groups in the dendrogram. 
+nutrient.car <- aggregate(nutrient, list(member.c),mean)
+nutrient.car <- subset(nutrient.car, select = -Group.1) #Had to remove Group.1 in order to vizualize the data this way.
+plot(nutrient.car)
+
+nutrient.cas <- aggregate(nutrient.scale, list(member.c),mean)
+nutrient.cas <- subset(nutrient.cas, select = -Group.1)
+plot (nutrient.cas)
+
+3g.	Discuss the common nutrient characteristics in each group. 
+#I'm not exactly sure what to discuss here as I am notmuch of a nutrionalist. Usually there was a correlation between Energy/Protien levels (High energy meant average or higher protien. Most food high in fat was low in other areas. In Calcium we clearly had an outlier as one food was high across the board and in Calcium. This seemed to skew the results heavily as all other products were comparatively low)
+
+## Question 4: Logistic Regression (25 Points)
+Load the **Sleuth2** library and the *case2002* dataset. This dataset reports results of a survey conducted from 1972 to 1981 in the Netherlands aiming to see if birdkeeping is a risk factor for lung cancer. Variables include whether or not an individual had lung cancer, whether or not they were birdkeeping, their gender, socioeconomic status, age, years of smoking, and average rate of smoking. 
+
+4a. Perform basic EDA comment on the scatterplots of the continuous variables colored by whether or not an individual had lung cancer. Fit a logistic regression predicting an individual has lung cancer that includes all variables in the model. Test if the logistic regression model is appropriate. 
+set.seed(1234)
+case.scale <- case2002[,]
+case.scale[,5:7] <- scale(case2002[,5:7])
+ind <- sample(2, nrow(case.scale), replace = T, prob = c(0.8, 0.2))
+case.train <- case.scale[ind==1,]
+case.test <- case.scale[ind==2,]
+case.model <- glm(LC ~ FM + SS + BK + AG + YR + CD, data = case.train, family = 'binomial')
+summary(case.model)
+#Based on the summary results there does not appear to be a great statistical significance of any value except for Bird, but that is a 98.9% confidence level. Which is not bad. THe rest are all pretty low except for YR which is 94.8%, but that is not a great number for stats. :)
+
+4b.	Fit a logistic regression predicting an individual has lung cancer that includes all variables in the model except socioeconomic status. Test if the logistic regression model is appropriate. 
+case.model <- glm(LC ~ FM + BK + AG + YR + CD, data = case.train, family = 'binomial')
+case.p1 <- predict(case.model, case.train, type = 'response')
+case.pred1 <- ifelse(case.p1>0.5,1,0)
+table(Prediction = case.pred1, Actual = case.train$LC)
+#The misclassification level is about 28.7%. I don't think that is good enough to model.
+
+4c.	Fit a logistic regression predicting an individual has lung cancer based on socioeconomic status and the number of smoking year. Test if the logistic regression model is appropriate.
+case.model <- glm(LC ~ SS + YR, data = case.train, family = 'binomial')
+case.p1 <- predict(case.model, case.train, type = 'response')
+case.pred1 <- ifelse(case.p1>0.5,1,0)
+case.pred1.table <- table(Prediction = case.pred1, Actual = case.train$LC)
+1 - sum(diag(case.pred1.table))/sum(case.pred1.table)
+#The misclassifcation level is about 32.2%. That performed even worse in terms of prediction then the last model. :)
